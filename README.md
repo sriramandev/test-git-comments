@@ -1,1 +1,1 @@
-# test-git-comments
+Dummy project for test purpose
