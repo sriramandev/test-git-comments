@@ -47,5 +47,9 @@
 	// "postCreateCommand": "go version",
 
 	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vscode"
+	"remoteUser": "vscode",
+
+	"containerEnv": { 
+		"GH_ACCESS_TOKEN": "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" 
+	}
 }

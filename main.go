@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -186,13 +187,19 @@ func (g *Github) GetLatestPRCommit(ctx context.Context, prno int) (string, error
 
 func main() {
 	ctx := context.Background()
-	g, err := DefaultGithub(ctx, "navidshaikh", "test-webhook")
+	g, err := DefaultGithub(ctx, "sriramandev", "test-git-comments")
 	if err != nil {
 		fmt.Println(err)
 	}
-	commit, err := g.GetLatestPRCommit(ctx, 6)
+	commit, err := g.GetLatestPRCommit(ctx, 1)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(commit)
+	comment := "Dummy response to message"
+	prComment, _, err := g.PostGithubComment(ctx, comment, 1)
+	if err != nil {
+		fmt.Println(err)
+	}
+	log.Printf("Successfully posted comment with id '%d'.", prComment.ID)
 }
