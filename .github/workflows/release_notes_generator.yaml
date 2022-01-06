@@ -22,7 +22,13 @@ on:
         description: 'Start commit SHA'
         required: true
       endCommitSha:
-        descpription: 'End commit SHA'
+        description: 'End commit SHA'
+        required: true
+      startTagName:
+        description: 'The tag name for the release'
+        required: true
+      endTagName:
+        description: 'The name of the previous tag to use as the starting point for the release notes'
         required: true
 
 jobs:
@@ -63,3 +69,20 @@ jobs:
               --output /tmp/${{ steps.time.outputs.time }}
           echo "##[set-output name=release-note;]$(cat /tmp/${{ steps.time.outputs.time }})"
           echo "$(cat /tmp/${{ steps.time.outputs.time }})"
+
+      - name: 'Get Github Release notes'
+        uses: octokit/request-action@v2.x
+        id: get_github_release_notes
+        with:
+          route: POST /repos/{owner}/{repo}/releases/generate-notes
+          owner: vmware-tanzu
+          repo: tanzu-framework
+          name: "Generate Release Notes using Github Action"
+          tag_name: ${{ github.event.inputs.startTagName }}
+          previous_tag_name: ${{ github.event.inputs.endTagName }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Output Github release notes'
+        run: |
+          echo ${{ steps.get_github_release_notes.outputs.data }}
