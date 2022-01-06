@@ -83,4 +83,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: echo "${{ steps.get_github_release_notes.outputs.data }}"
+      - run: "Release note found : ${{ steps.get_github_release_notes.outputs.data }}"
