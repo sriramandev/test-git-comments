@@ -85,4 +85,4 @@ jobs:
 
       - name: 'Output Github release notes'
         run: |
-          echo ${{ steps.get_github_release_notes.outputs.data }}
+          echo "${{ steps.get_github_release_notes.outputs.data }}"
