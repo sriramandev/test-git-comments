@@ -12,7 +12,7 @@ on:
         default: 'vmware-tanzu'
       repoName:
         description: 'Repository Name'
-        required" true
+        required: true
         default: 'tanzu-framework'
       commitBranch:
         description: 'Branch from which the commits needs to be used for generating release notes'
