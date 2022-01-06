@@ -75,8 +75,8 @@ jobs:
         id: get_github_release_notes
         with:
           route: POST /repos/{owner}/{repo}/releases/generate-notes
-          owner: vmware-tanzu
-          repo: tanzu-framework
+          owner: ${{ github.event.inputs.repoOrg }}
+          repo: ${{ github.event.inputs.repoName }}
           name: "Generate Release Notes using Github Action"
           tag_name: ${{ github.event.inputs.startTagName }}
           previous_tag_name: ${{ github.event.inputs.endTagName }}
