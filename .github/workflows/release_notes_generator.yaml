@@ -1,0 +1,65 @@
+name: Release - Dev Tag Retrieval PR Generator
+on:
+  workflow_dispatch:
+    inputs:
+      githubBaseUrl:
+        description: 'Github Base URL'
+        required: true
+        default: 'https://github.com'
+      repoOrg:
+        description: 'Repository Organization Name'
+        required: true
+        default: 'vmware-tanzu'
+      repoName:
+        description: 'Repository Name'
+        required" true
+        default: 'tanzu-framework'
+      commitBranch:
+        description: 'Branch from which the commits needs to be used for generating release notes'
+        required: true
+        default: 'main'
+      startCommitSha:
+        description: 'Start commit SHA'
+        required: true
+      endCommitSha:
+        descpription: 'End commit SHA'
+        required: true
+
+jobs:
+  gen_release_notes:
+    name: Generate Release Notes
+    # Only run this job if we're in the main repo, not a fork.
+    # if: github.repository == 'vmwa/re-tanzu/tanzu-framework'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+        id: go
+
+      - name: Install release-note dependency
+        run: |
+          go get k8s.io/release/cmd/release-notes@latest
+
+      - name: Get Time
+        id: time
+        uses: nanzm/get-time-action@v1.1
+        with:
+          format: 'YYYYMMDDHHmmss'
+
+      - name: Generate release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release-notes \
+              --github-base-url ${{ github.event.inputs.githubBaseUrl }} \
+              --org ${{ github.event.inputs.repoOrg }} \
+              --repo ${{ github.event.inputs.repoName }} \
+              --branch ${{ github.event.inputs.commitBranch }} \
+              --required-author "" \
+              --start-sha ${{ github.event.inputs.startCommitSha }} \
+              --end-sha ${{ github.event.inputs.endCommitSha }} \
+              --output /tmp/${{ steps.time.outputs.time }}
+          echo "##[set-output name=release-note;]$(cat /tmp/${{ steps.time.outputs.time }})"
+          echo "$(cat /tmp/${{ steps.time.outputs.time }})"
