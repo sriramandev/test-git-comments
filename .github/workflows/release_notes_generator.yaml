@@ -55,6 +55,7 @@ jobs:
           format: 'YYYYMMDDHHmmss'
 
       - name: Generate release notes
+        id: get-release-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -67,12 +68,12 @@ jobs:
               --start-sha ${{ github.event.inputs.startCommitSha }} \
               --end-sha ${{ github.event.inputs.endCommitSha }} \
               --output /tmp/${{ steps.time.outputs.time }}
-          echo "##[set-output name=release-note;]$(cat /tmp/${{ steps.time.outputs.time }})"
-          echo "$(cat /tmp/${{ steps.time.outputs.time }})"
+          echo "##[set-output name=release-note;]$(cat /tmp/${{ steps.time.outputs.time }}-bin-notes)"
+          echo "$(cat /tmp/${{ steps.time.outputs.time }}-bin-notes)"
 
       - name: 'Get Github Release notes'
         uses: octokit/request-action@v2.x
-        id: get_github_release_notes
+        id: get-github-release-notes
         with:
           route: POST /repos/{owner}/{repo}/releases/generate-notes
           owner: ${{ github.event.inputs.repoOrg }}
@@ -83,4 +84,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: "Release note found : ${{ steps.get_github_release_notes.outputs.data }}"
+      - name: 'Identify New Contributors section'
+        id: get-new-contributors
+        run: |
+          githubOutput="/tmp/${{ steps.time.outputs.time }}-github-output"
+          echo "${{ fromJson(steps.get-github-release-notes.outputs.data).body }}" > "$githubOutput"
+          echo "##[set-output name=new-contributors;]$(sed -n '/## New Contributors/,$p'  $githubOutput)"
+
+      - name: 'Generate the release notes'
+        shell: bash
+        run: |
+          RELEASE_NOTES=$(cat <<-END
+            ## Tanzu CLI Installation Instructions
+
+            If you are installing Tanzu CLI using the artifacts published as part of this release, please follow the [instructions](https://github.com/vmware-tanzu/tanzu-framework/blob/main/docs/cli/getting-started.md).
+          
+            ${{ steps.get-release-notes.outputs.release-note }}
+          
+            ${{ steps.get-new-contributors.outputs.new-contributors }}
+          END
+          )
+          echo "##[set-output name=final-release-note;]$(sed -e 's/### Uncategorized/### Miscellaneous/g'  $v)"
+
