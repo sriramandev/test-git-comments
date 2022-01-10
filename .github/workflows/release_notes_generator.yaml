@@ -95,13 +95,18 @@ jobs:
       - name: 'Generate the release notes'
         shell: bash
         run: |
-          cat >/tmp/${{ steps.time.outputs.time }}-release-notes <<END
+          RELEASE_NOTES=$(cat <<-END
             ## Tanzu CLI Installation Instructions
 
             If you are installing Tanzu CLI using the artifacts published as part of this release, please follow the [instructions](https://github.com/vmware-tanzu/tanzu-framework/blob/main/docs/cli/getting-started.md).
 
+            ${{ env.RELEASE_NOTE_TOOL }}
+
+            $(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})
           END
-          releaseNotes="/tmp/${{ steps.time.outputs.time }}-release-notes"
-          echo "${{ env.RELEASE_NOTE_TOOL }}" >> "$releaseNotes"
-          echo "$(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})"  >> "$releaseNotes"
-          cat "$releaseNotes"
+          )
+          echo "$RELEASE_NOTES"
+#          releaseNotes="/tmp/${{ steps.time.outputs.time }}-release-notes"
+#          echo "${{ env.RELEASE_NOTE_TOOL }}" >> "$releaseNotes"
+#          echo "$(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})"  >> "$releaseNotes"
+#          cat "$releaseNotes"
