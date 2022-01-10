@@ -90,7 +90,9 @@ jobs:
         run: |
           githubOutput="/tmp/${{ steps.time.outputs.time }}-github-output"
           echo "${{ fromJson(steps.get-github-release-notes.outputs.data).body }}" > "$githubOutput"
-          echo "##[set-output name=new-contributors;]$(sed -n '/## New Contributors/,$p'  $githubOutput)"
+          echo "NEW_CONTRIBUTORS<<EOF" >> $GITHUB_ENV
+          echo $(sed -n '/## New Contributors/,$p'  $githubOutput) >> EGITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: 'Generate the release notes'
         shell: bash
@@ -103,7 +105,7 @@ jobs:
 
             ${{ env.RELEASE_NOTE_TOOL }}
 
-            $NEW_CONTRIBUTORS
+            ${{ env.NEW_CONTRIBUTORS }}
           END
           )
           echo "$RELEASE_NOTES"
