@@ -95,7 +95,7 @@ jobs:
       - name: 'Generate the release notes'
         shell: bash
         run: |
-          cat > /tmp/${{ steps.time.outputs.time }}-release-notes << END
+          cat > /tmp/${{ steps.time.outputs.time }}-release-notes <<END
             ## Tanzu CLI Installation Instructions
 
             If you are installing Tanzu CLI using the artifacts published as part of this release, please follow the [instructions](https://github.com/vmware-tanzu/tanzu-framework/blob/main/docs/cli/getting-started.md).
