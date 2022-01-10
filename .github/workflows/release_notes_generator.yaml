@@ -95,6 +95,7 @@ jobs:
       - name: 'Generate the release notes'
         shell: bash
         run: |
+          NEW_CONTRIBUTORS=$(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})
           RELEASE_NOTES=$(cat <<-END
             ## Tanzu CLI Installation Instructions
 
@@ -102,11 +103,7 @@ jobs:
 
             ${{ env.RELEASE_NOTE_TOOL }}
 
-            $(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})
+            $NEW_CONTRIBUTORS
           END
           )
           echo "$RELEASE_NOTES"
-#          releaseNotes="/tmp/${{ steps.time.outputs.time }}-release-notes"
-#          echo "${{ env.RELEASE_NOTE_TOOL }}" >> "$releaseNotes"
-#          echo "$(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})"  >> "$releaseNotes"
-#          cat "$releaseNotes"
