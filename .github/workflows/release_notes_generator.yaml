@@ -67,7 +67,7 @@ jobs:
               --required-author "" \
               --start-sha ${{ github.event.inputs.startCommitSha }} \
               --end-sha ${{ github.event.inputs.endCommitSha }} \
-              --output /tmp/${{ steps.time.outputs.time }}
+              --output /tmp/${{ steps.time.outputs.time }}-bin-notes
           echo "##[set-output name=release-note;]$(cat /tmp/${{ steps.time.outputs.time }}-bin-notes)"
           echo "$(cat /tmp/${{ steps.time.outputs.time }}-bin-notes)"
 
@@ -89,7 +89,7 @@ jobs:
         run: |
           githubOutput="/tmp/${{ steps.time.outputs.time }}-github-output"
           echo "${{ fromJson(steps.get-github-release-notes.outputs.data).body }}" > "$githubOutput"
-          echo "##[set-output name=new-contributors;]$(sed -n '/## New Contributors/,$p'  $githubOutput)"
+          echo "##[set-output name=new-contributors;]$(sed -n '/## New Contributors/,$p' <<< $githubOutput)"
 
       - name: 'Generate the release notes'
         shell: bash
