@@ -1,1 +1,1 @@
-Dummy project for test purpose
+Dummy project for test purpose.
