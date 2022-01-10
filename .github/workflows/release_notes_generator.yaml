@@ -68,9 +68,6 @@ jobs:
               --start-sha ${{ github.event.inputs.startCommitSha }} \
               --end-sha ${{ github.event.inputs.endCommitSha }} \
               --output /tmp/${{ steps.time.outputs.time }}-bin-notes
-          echo "RELEASE_NOTE_TOOL<<EOF" >> $GITHUB_ENV
-          echo $(sed 's/### Uncategorized/### Miscellaneous/g' /tmp/${{ steps.time.outputs.time }}-bin-notes) >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
 
       - name: 'Get Github Release notes'
         uses: octokit/request-action@v2.x
@@ -90,22 +87,21 @@ jobs:
         run: |
           githubOutput="/tmp/${{ steps.time.outputs.time }}-github-output"
           echo "${{ fromJson(steps.get-github-release-notes.outputs.data).body }}" > "$githubOutput"
-          echo "NEW_CONTRIBUTORS<<EOF" >> $GITHUB_ENV
-          echo $(sed -n '/## New Contributors/,$p'  $githubOutput) >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+
 
       - name: 'Generate the release notes'
         shell: bash
         run: |
-          NEW_CONTRIBUTORS=$(sed -n '/## New Contributors/,$p' <<< ${{ fromJson(steps.get-github-release-notes.outputs.data).body }})
+          NEW_CONTRIBUTORS=$(sed -n '/## New Contributors/,$p' /tmp/${{ steps.time.outputs.time }}-github-output }})
+          RELEASE_TOOL_NOTES=$(sed 's/### Uncategorized/### Miscellaneous/g' /tmp/${{ steps.time.outputs.time }}-bin-notes)
           RELEASE_NOTES=$(cat <<-END
             ## Tanzu CLI Installation Instructions
 
             If you are installing Tanzu CLI using the artifacts published as part of this release, please follow the [instructions](https://github.com/vmware-tanzu/tanzu-framework/blob/main/docs/cli/getting-started.md).
 
-            ${{ env.RELEASE_NOTE_TOOL }}
+            $RELEASE_TOOL_NOTES
 
-            ${{ env.NEW_CONTRIBUTORS }}
+            $NEW_CONTRIBUTORS
           END
           )
           echo "$RELEASE_NOTES"
