@@ -24,10 +24,10 @@ on:
       endCommitSha:
         description: 'End commit SHA'
         required: true
-      startTagName:
+      currentReleaseTag:
         description: 'The tag name for the release'
         required: true
-      endTagName:
+      previousReleaseTag:
         description: 'The name of the previous tag to use as the starting point for the release notes'
         required: true
 
@@ -77,8 +77,8 @@ jobs:
           owner: ${{ github.event.inputs.repoOrg }}
           repo: ${{ github.event.inputs.repoName }}
           name: "Generate Release Notes using Github Action"
-          tag_name: ${{ github.event.inputs.startTagName }}
-          previous_tag_name: ${{ github.event.inputs.endTagName }}
+          tag_name: ${{ github.event.inputs.currentReleaseTag }}
+          previous_tag_name: ${{ github.event.inputs.previousReleaseTag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,3 +105,28 @@ jobs:
           END
           )
           echo "$RELEASE_NOTES"
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$RELEASE_NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: 'Get release id from tag'
+        uses: octokit/request-action@v2.x
+        id: get-github-release-id
+        with:
+          route: GET /repos/{owner}/{repo}/releases/tags/{tag}
+          owner: ${{ github.event.inputs.repoOrg }}
+          repo: ${{ github.event.inputs.repoName }}
+          tag: ${{ github.event.inputs.currentReleaseTag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Update the release with release notes'
+        uses: octokit/request-action@v2.x
+        with:
+          route: PATCH /repos/{owner}/{repo}/releases/{release_id}
+          owner: ${{ github.event.inputs.repoOrg }}
+          repo: ${{ github.event.inputs.repoName }}
+          release_id: ${{ fromJson(steps.get-github-release-id.outputs.data).id }}
+          body: ${{ toJSON(env.RELEASE_NOTES) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
