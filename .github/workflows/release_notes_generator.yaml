@@ -156,24 +156,11 @@ jobs:
           echo "$RELEASE_NOTES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: 'Get release id from tag'
-        uses: octokit/request-action@v2.x
-        id: get-github-release-id
+      - id: create_draft_release
+        name: Create Draft Release
+        uses: softprops/action-gh-release@v1
         with:
-          route: GET /repos/{owner}/{repo}/releases/tags/{tag}
-          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
-          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
-          tag: ${{ steps.get-start-end-sha.outputs.release-version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 'Update the release with release notes'
-        uses: octokit/request-action@v2.x
-        with:
-          route: PATCH /repos/{owner}/{repo}/releases/{release_id}
-          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
-          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
-          release_id: ${{ fromJson(steps.get-github-release-id.outputs.data).id }}
+          draft: true
           body: ${{ toJSON(env.RELEASE_NOTES) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
