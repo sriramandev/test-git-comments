@@ -151,8 +151,6 @@ jobs:
       - name: 'Get release id from tag'
         uses: octokit/request-action@v2.x
         id: get-github-release-id
-        permissions:
-          contents: write
         with:
           route: GET /repos/{owner}/{repo}/releases/tags/{tag}
           owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
