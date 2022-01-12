@@ -22,6 +22,12 @@ jobs:
       - name: 'Check out code'
         uses: actions/checkout@v1
 
+      - name: 'Generate details about repo'
+        id: generate-repo-details
+        shell: bash
+        run: |
+          echo "::set-output name=repo-name::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
+          echo "::set-output name=repo-org::$(echo '${{ github.repository }}' | awk -F '/' '{print $1}')"
       - name: 'Get last release'
         uses: octokit/request-action@v2.x
         id: get-last-release
