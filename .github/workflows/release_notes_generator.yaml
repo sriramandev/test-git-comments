@@ -42,9 +42,9 @@ jobs:
         id: get-start-end-sha
         shell: bash
         run: |
-          LAST_TAG=${{ fromJson(steps.get-last-release.output.data).tag_name }}
+          LAST_TAG=${{ fromJson(steps.get-last-release.outputs.data).tag_name }}
           echo "last tag - $LAST_TAG"
-          LAST_TAG_SHA=$(git rev-list -n 1 ${{ fromJson(steps.get-last-release.output.data).tag_name }})
+          LAST_TAG_SHA=$(git rev-list -n 1 ${{ fromJson(steps.get-last-release.outputs.data).tag_name }})
           echo "Last tag SHA - $LAST_TAG_SHA"
           END_SHA=$(git rev-parse HEAD)
           echo "End Sha - $END_SHA"
@@ -80,7 +80,7 @@ jobs:
           echo "::set-output name=start-sha::$currentSha"
           echo "::set-output name=end-sha::$END_SHA"
           echo "::set-output name=release-version::$RELEASE_VERSION"
-          echo "::set-output name=prev-release-version::${{ fromJson(steps.get-last-release.output.data).tag_name }}"
+          echo "::set-output name=prev-release-version::${{ fromJson(steps.get-last-release.outputs.data).tag_name }}"
           echo "::set-output name=repo-name::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
           echo "::set-output name=repo-org::$(echo '${{ github.repository }}' | awk -F '/' '{print $1}')"
         env:
