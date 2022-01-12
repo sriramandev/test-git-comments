@@ -1,35 +1,16 @@
 name: Release - Dev Tag Retrieval PR Generator
+# Order of execution
+# 1. First identify the last release and get tag corresponding to it.
+# 2. Using the last release tag, identify the next commit ( that will be used to get the start sha for release note tool --- end sha will be the current tag sha).
+# 3. Get the current tag sha( this will be the end sha for release note tool)
+# 4.
 on:
-  workflow_dispatch:
-    inputs:
-      githubBaseUrl:
-        description: 'Github Base URL'
-        required: true
-        default: 'https://github.com'
-      repoOrg:
-        description: 'Repository Organization Name'
-        required: true
-        default: 'vmware-tanzu'
-      repoName:
-        description: 'Repository Name'
-        required: true
-        default: 'tanzu-framework'
-      commitBranch:
-        description: 'Branch from which the commits needs to be used for generating release notes'
-        required: true
-        default: 'main'
-      startCommitSha:
-        description: 'Start commit SHA'
-        required: true
-      endCommitSha:
-        description: 'End commit SHA'
-        required: true
-      currentReleaseTag:
-        description: 'The tag name for the release'
-        required: true
-      previousReleaseTag:
-        description: 'The name of the previous tag to use as the starting point for the release notes'
-        required: true
+  push:
+    branches:
+      - "!not_activated_on_branches!*"
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "!*-*"
 
 jobs:
   gen_release_notes:
@@ -38,6 +19,65 @@ jobs:
     # if: github.repository == 'vmwa/re-tanzu/tanzu-framework'
     runs-on: ubuntu-latest
     steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v1
+
+      - name: 'Get last release'
+        uses: octokit/request-action@v2.x
+        id: get-last-release
+        with:
+          route: GET /repos/{owner}/{repo}/releases/latest
+          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
+          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Generate details for creating release notes'
+        id: get-start-end-sha
+        shell: bash
+        run: |
+          LAST_TAG_SHA=$(git rev-list -n 1 ${{ fromJson(steps.get-last-release.output.data).tag_name }})
+          echo "Last tag SHA - $LAST_TAG_SHA"
+          END_SHA=$(git rev-parse HEAD)
+          echo "End Sha - $END_SHA"
+          declare -a SHA_ARRAY
+          SHA_ARRAY=($(env -i git log --format='%H' --reverse --ancestry-path "$LAST_TAG_SHA"^..."$END_SHA"))
+          currentShaFound=false
+          currentSha=""
+          for i in "${SHA_ARRAY[@]}"
+          do
+            currentSha=$i
+            if $currentShaFound ;
+            then
+              break
+            fi
+            if [ "$LAST_TAG_SHA" == "$currentSha" ];
+            then
+              currentShaFound=true
+            fi
+          done
+          if [ -z "$currentSha" ]
+          then
+            echo "Did not find any commits after previous tag sha"
+            exit 1
+          fi
+          if ! $currentShaFound
+          then
+            echo "Failed to find last tag sha"
+            exit 1
+          fi
+
+          RELEASE_VERSION=${GITHUB_REF#refs/*/}
+
+          echo "::set-output name=start-sha::$currentSha"
+          echo "::set-output name=end-sha::$END_SHA"
+          echo "::set-output name=release-version::$RELEASE_VERSION"
+          echo "::set-output name=prev-release-version::${{ fromJson(steps.get-last-release.output.data).tag_name }}"
+          echo "::set-output name=repo-name::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
+          echo "::set-output name=repo-org::$(echo '${{ github.repository }}' | awk -F '/' '{print $1}')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
@@ -60,13 +100,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release-notes \
-              --github-base-url ${{ github.event.inputs.githubBaseUrl }} \
-              --org ${{ github.event.inputs.repoOrg }} \
-              --repo ${{ github.event.inputs.repoName }} \
-              --branch ${{ github.event.inputs.commitBranch }} \
+              --github-base-url https://github.com \
+              --org ${{ steps.get-start-end-sha.outputs.repo-org }} \
+              --repo ${{ steps.get-start-end-sha.outputs.repo-name }} \
+              --branch main \
               --required-author "" \
-              --start-sha ${{ github.event.inputs.startCommitSha }} \
-              --end-sha ${{ github.event.inputs.endCommitSha }} \
+              --start-sha ${{ steps.get-start-end-sha.outputs.start-sha }} \
+              --end-sha ${{ steps.get-start-end-sha.outputs.end-sha }} \
               --output /tmp/${{ steps.time.outputs.time }}-bin-notes
 
       - name: 'Get Github Release notes'
@@ -74,11 +114,10 @@ jobs:
         id: get-github-release-notes
         with:
           route: POST /repos/{owner}/{repo}/releases/generate-notes
-          owner: ${{ github.event.inputs.repoOrg }}
-          repo: ${{ github.event.inputs.repoName }}
-          name: "Generate Release Notes using Github Action"
-          tag_name: ${{ github.event.inputs.currentReleaseTag }}
-          previous_tag_name: ${{ github.event.inputs.previousReleaseTag }}
+          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
+          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          tag_name: ${{ steps.get-start-end-sha.outputs.release-version }}
+          previous_tag_name: ${{ steps.get-start-end-sha.outputs.prev-release-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -112,11 +151,13 @@ jobs:
       - name: 'Get release id from tag'
         uses: octokit/request-action@v2.x
         id: get-github-release-id
+        permissions:
+          contents: write
         with:
           route: GET /repos/{owner}/{repo}/releases/tags/{tag}
-          owner: ${{ github.event.inputs.repoOrg }}
-          repo: ${{ github.event.inputs.repoName }}
-          tag: ${{ github.event.inputs.currentReleaseTag }}
+          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
+          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          tag: ${{ steps.get-start-end-sha.outputs.release-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -124,8 +165,8 @@ jobs:
         uses: octokit/request-action@v2.x
         with:
           route: PATCH /repos/{owner}/{repo}/releases/{release_id}
-          owner: ${{ github.event.inputs.repoOrg }}
-          repo: ${{ github.event.inputs.repoName }}
+          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
+          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
           release_id: ${{ fromJson(steps.get-github-release-id.outputs.data).id }}
           body: ${{ toJSON(env.RELEASE_NOTES) }}
         env:
