@@ -161,6 +161,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          body: ${{ toJSON(env.RELEASE_NOTES) }}
+          body: ${{ env.RELEASE_NOTES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
