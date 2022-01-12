@@ -33,8 +33,8 @@ jobs:
         id: get-last-release
         with:
           route: GET /repos/{owner}/{repo}/releases/latest
-          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
-          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
+          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -107,8 +107,8 @@ jobs:
         run: |
           release-notes \
               --github-base-url https://github.com \
-              --org ${{ steps.get-start-end-sha.outputs.repo-org }} \
-              --repo ${{ steps.get-start-end-sha.outputs.repo-name }} \
+              --org ${{ steps.generate-repo-details.outputs.repo-org }} \
+              --repo ${{ steps.generate-repo-details.outputs.repo-name }} \
               --branch main \
               --required-author "" \
               --start-sha ${{ steps.get-start-end-sha.outputs.start-sha }} \
@@ -120,8 +120,8 @@ jobs:
         id: get-github-release-notes
         with:
           route: POST /repos/{owner}/{repo}/releases/generate-notes
-          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
-          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
+          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
           tag_name: ${{ steps.get-start-end-sha.outputs.release-version }}
           previous_tag_name: ${{ steps.get-start-end-sha.outputs.prev-release-version }}
         env:
@@ -159,8 +159,8 @@ jobs:
         id: get-github-release-id
         with:
           route: GET /repos/{owner}/{repo}/releases/tags/{tag}
-          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
-          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
+          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
           tag: ${{ steps.get-start-end-sha.outputs.release-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -169,8 +169,8 @@ jobs:
         uses: octokit/request-action@v2.x
         with:
           route: PATCH /repos/{owner}/{repo}/releases/{release_id}
-          owner: ${{ steps.get-start-end-sha.outputs.repo-org }}
-          repo: ${{ steps.get-start-end-sha.outputs.repo-name }}
+          owner: ${{ steps.generate-repo-details.outputs.repo-org }}
+          repo: ${{ steps.generate-repo-details.outputs.repo-name }}
           release_id: ${{ fromJson(steps.get-github-release-id.outputs.data).id }}
           body: ${{ toJSON(env.RELEASE_NOTES) }}
         env:
